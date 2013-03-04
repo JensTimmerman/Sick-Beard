@@ -20,6 +20,7 @@ This is an implementation of sickbeards sendTORRENT's api
 using the download station WEB API as described here
 http://www.synology.com/support/download_station.php?lang=us
 """
+import urllib
 import urllib2
 import httplib
 
@@ -59,7 +60,7 @@ def getsid(host, username, password):
 
     # get/post data: api=SYNO.API.Auth&version=2&method=login&account=admin&passwd=12345&session=
     # DownloadStation&format=sid
-    post_data = json.dumps({'api': 'SYNO.API.Auth',
+    post_data = urllib.urlencode({'api': 'SYNO.API.Auth',
                             'version': '2',
                             "method": "login",
                             "account": username,
@@ -69,7 +70,7 @@ def getsid(host, username, password):
                             })
 
     request = urllib2.Request(
-        url="%s/auth.cgi" % host, data=post_data.encode('utf-8'))
+        "%s/auth.cgi" % host, post_data.encode('utf-8'),  {'Content-Type': 'appl    ication/json'})
 
     try:
         response = urllib2.urlopen(request)
@@ -111,7 +112,7 @@ def sendTORRENT(result):
 
     # SYNO.DownloadStation.Task&version=1&method=create&uri=ftps://192.0.0.1:2
     # 1/test/test.zip
-    post_data = json.dumps({'api': 'SYNO.DownloadStation.task',
+    post_data = urllib.urlencode({'api': 'SYNO.DownloadStation.task',
                             'version': '1',
                             "method": "create",
                             "_sid": sid,
@@ -122,7 +123,7 @@ def sendTORRENT(result):
     logger.log(u"Sending Torrent to Download station Client", logger.DEBUG)
 
     try:
-        request = urllib2.Request(url=host, data=post_data.encode('utf-8'))
+        request = urllib2.Request(host, post_data.encode('utf-8'),  {'Content-Type': 'appl    ication/json'})
         response = urllib2.urlopen(request)
         data = json.loads(response.read())
         if data["success"]:
