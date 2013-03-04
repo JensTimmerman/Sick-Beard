@@ -100,7 +100,7 @@ def getsid(host, username, password):
 def sendTORRENT(result):
     """Send a torrent url to the downloadstation api"""
 
-    host = sickbeard.TORRENT_HOST + 'webapi/task.cgi'
+    host = sickbeard.TORRENT_HOST
     password = sickbeard.TORRENT_PASSWORD
     username = sickbeard.TORRENT_USERNAME
 
@@ -123,7 +123,7 @@ def sendTORRENT(result):
     logger.log(u"Sending Torrent to Download station Client", logger.DEBUG)
 
     try:
-        request = urllib2.Request(host, post_data.encode('utf-8'),  {'Content-Type': 'appl    ication/json'})
+        request = urllib2.Request(host + 'webapi/task.cgi', post_data.encode('utf-8'),  {'Content-Type': 'appl    ication/json'})
         response = urllib2.urlopen(request)
         data = json.loads(response.read())
         if data["success"]:
