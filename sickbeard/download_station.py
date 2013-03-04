@@ -30,7 +30,6 @@ except ImportError:
 
 import sickbeard
 from sickbeard import logger
-from sickbeard.exceptions import ex
 
 ERRORCODES = {
     '100': '100 Unknown error',
@@ -65,7 +64,7 @@ def getsid(host, username, password):
                             "method": "login",
                             "account": username,
                             "passwd": password,
-                            "session": "testauthentication",
+                            "session": "DownloadStation",
                             'format': 'sid',
                             })
 
@@ -90,13 +89,15 @@ def getsid(host, username, password):
     if success:
         try:
             return True, jsonresponse['data']['sid']
-        expect:
-            return False "Connection ok, but could not parse sid from response, contact sickbeard developer"
+        except:
+            return False, "Connection ok, but could not parse sid from response, contact sickbeard developer"
     else:
         errorcode = jsonresponse['error']
         return False, "Received this error from download station: %s" % ERRORCODES[errorcode]
 
+
 def sendTORRENT(result):
+    """Send a torrent url to the downloadstation api"""
 
     host = sickbeard.TORRENT_HOST + 'json'
     password = sickbeard.TORRENT_PASSWORD
@@ -108,16 +109,18 @@ def sendTORRENT(result):
             u"Unable to get download station session ID " + sid, logger.ERROR)
         return False
 
-    if result.url.startswith('magnet'):
-        post_data = json.dumps({"method": 'core.add_torrent_magnet',
-                                "params": [result.url, {}],
-                                "id": 2
-                                })
-    else:
-        post_data = json.dumps({"method": 'core.add_torrent_url',
-                                "params": [result.url, {}],
-                                "id": 2
-                                })
+    # SYNO.DownloadStation.Task&version=1&method=create&uri=ftps://192.0.0.1:2
+    # 1/test/test.zip
+    post_data = json.dumps({'api': 'SYNO.DownloadStation.task',
+                            'version': '1',
+                            "method": "create",
+                            "_sid": sid,
+                            "uri": result.url,
+                            "session": "DownloadStation",
+                            })
+
+    request = urllib2.Request(
+        url="%s/task.cgi" % host, data=post_data.encode('utf-8'))
 
     logger.log(u"Sending Torrent to Download station Client", logger.DEBUG)
 
@@ -130,12 +133,11 @@ def sendTORRENT(result):
             return True
         else:
             logger.log(u"Failure sending Torrent to Download station. error is: " + ERRORCODES[data["error"]],
-            logger.ERROR)
-    except Exception exeption:
+                       logger.ERROR)
+    except Exception, exception:
         logger.log(u"Unknown failure sending Torrent to Deluge", logger.ERROR)
         logger.log("exception: %s" % exception, logger.DEBUG)
         return False
-
 
 
 def testAuthentication(host, username, password):
@@ -144,4 +146,3 @@ def testAuthentication(host, username, password):
     if success:
         return True, "Successfully connected and authenticated to download station"
     return False, error
-
