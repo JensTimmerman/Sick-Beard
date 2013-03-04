@@ -92,7 +92,7 @@ def getsid(host, username, password):
         except:
             return False, "Connection ok, but could not parse sid from response, contact sickbeard developer"
     else:
-        errorcode = jsonresponse['error']
+        errorcode = str(jsonresponse['error']['code'])
         return False, "Received this error from download station: %s" % ERRORCODES[errorcode]
 
 
@@ -132,7 +132,8 @@ def sendTORRENT(result):
             logger.log(u"Torrent sent to download station successfully", logger.DEBUG)
             return True
         else:
-            logger.log(u"Failure sending Torrent to Download station. error is: " + ERRORCODES[data["error"]],
+            code = str(data["error"]['code'])
+            logger.log(u"Failure sending Torrent to Download station. error is: " + ERRORCODES[code],
                        logger.ERROR)
     except Exception, exception:
         logger.log(u"Unknown failure sending Torrent to Deluge", logger.ERROR)
