@@ -134,7 +134,7 @@ def sendTORRENT(result):
             logger.log(u"Failure sending Torrent to Download station. error is: " + ERRORCODES[code],
                        logger.ERROR)
     except Exception, exception:
-        logger.log(u"Unknown failure sending Torrent to Deluge", logger.ERROR)
+        logger.log(u"Unknown failure sending Torrent to Download Station: %s" % str(exception) , logger.ERROR)
         logger.log("exception: %s" % exception, logger.DEBUG)
         return False
 
