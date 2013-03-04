@@ -91,11 +91,10 @@ class GenericProvider:
             result = classes.TorrentSearchResult(episodes)
         else:
             result = classes.SearchResult(episodes)
-
-        result.provider = self
-
+        
+        result.provider = self    
+            
         return result
-
 
     def getURL(self, url, headers=None):
         """
@@ -105,8 +104,6 @@ class GenericProvider:
 
         if not headers:
             headers = []
-
-        result = None
 
         result = helpers.getURL(url, headers)
 
@@ -271,12 +268,14 @@ class GenericProvider:
             result.url = url
             result.name = title
             result.quality = quality
-
+            result.provider = self
+            result.content = self.getURL(result.url) \
+                            if self.providerType == GenericProvider.TORRENT \
+                            and not result.url.startswith('magnet') else None 
+            
             results.append(result)
 
         return results
-
-
 
     def findSeasonResults(self, show, season):
 
@@ -303,7 +302,7 @@ class GenericProvider:
             if not show.air_by_date:
                 # this check is meaningless for non-season searches
                 if (parse_result.season_number != None and parse_result.season_number != season) or (parse_result.season_number == None and season != 1):
-                    logger.log(u"The result "+title+" doesn't seem to be a valid episode for season "+str(season)+", ignoring")
+                    logger.log(u"The result "+title+" doesn't seem to be a valid episode for season "+str(season)+", ignoring", logger.DEBUG)
                     continue
 
                 # we just use the existing info for normal searches
@@ -347,6 +346,10 @@ class GenericProvider:
             result.url = url
             result.name = title
             result.quality = quality
+            result.provider = self
+            result.content = self.getURL(result.url) \
+                            if self.providerType == GenericProvider.TORRENT \
+                            and not result.url.startswith('magnet') else None 
 
             if len(epObj) == 1:
                 epNum = epObj[0].episode
@@ -362,7 +365,6 @@ class GenericProvider:
                 results[epNum].append(result)
             else:
                 results[epNum] = [result]
-
 
         return results
 

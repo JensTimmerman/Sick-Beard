@@ -21,7 +21,9 @@ import sickbeard
 import xbmc
 import plex
 import nmj
+import nmjv2
 import synoindex
+import synologynotifier
 import pytivo
 
 import growl
@@ -30,12 +32,6 @@ import notifo
 from . import libnotify
 import pushover
 import boxcar
-import pushover
-import nmj
-import synoindex
-import synologynotifier
-import trakt
-import pytivo
 import nma
 
 import tweet
@@ -47,7 +43,9 @@ from sickbeard.common import *
 xbmc_notifier = xbmc.XBMCNotifier()
 plex_notifier = plex.PLEXNotifier()
 nmj_notifier = nmj.NMJNotifier()
+nmjv2_notifier = nmjv2.NMJv2Notifier()
 synoindex_notifier = synoindex.synoIndexNotifier()
+synology_notifier = synologynotifier.synologyNotifier()
 pytivo_notifier = pytivo.pyTivoNotifier()
 # devices
 growl_notifier = growl.GrowlNotifier()
@@ -59,17 +57,16 @@ boxcar_notifier = boxcar.BoxcarNotifier()
 nma_notifier = nma.NMA_Notifier()
 # online
 twitter_notifier = tweet.TwitterNotifier()
-synology_notifier = synologynotifier.synologyNotifier()
 trakt_notifier = trakt.TraktNotifier()
-pytivo_notifier = pytivo.pyTivoNotifier()
-nma_notifier = nma.NMA_Notifier()
 
 notifiers = [
     libnotify_notifier, # Libnotify notifier goes first because it doesn't involve blocking on network activity.
     xbmc_notifier,
     plex_notifier,
     nmj_notifier,
+    nmjv2_notifier,
     synoindex_notifier,
+    synology_notifier,
     pytivo_notifier,
     growl_notifier,
     prowl_notifier,
@@ -78,12 +75,6 @@ notifiers = [
     boxcar_notifier,
     nma_notifier,
     twitter_notifier,
-    notifo_notifier,
-    nmj_notifier,
-    synoindex_notifier,
-    synology_notifier,
-    boxcar_notifier,
-    pushover_notifier,
     trakt_notifier,
 ]
 
@@ -95,7 +86,6 @@ def notify_download(ep_name):
 def notify_subtitle_download(ep_name, lang):
     for n in notifiers:
         n.notify_subtitle_download(ep_name, lang)
-
 
 def notify_snatch(ep_name):
     for n in notifiers:

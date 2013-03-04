@@ -42,11 +42,15 @@ except ImportError:
 
 class XBMCNotifier:
 
-    def _get_json_version(self, host, username, password):
+    sb_logo_url = 'http://www.sickbeard.com/xbmc-notify.png'
+
+    def _get_xbmc_version(self, host, username, password):
         """Returns XBMC JSON-RPC API version (odd # = dev, even # = stable)
 
         Sends a request to the XBMC host using the JSON-RPC to determine if
         the legacy API or if the JSON-RPC API functions should be used.
+
+        Fallback to testing legacy HTTPAPI before assuming it is just a badly configured host.
 
         Args:
             host: XBMC webserver host:port
@@ -80,7 +84,14 @@ class XBMCNotifier:
         if result:
             return result["result"]["version"]
         else:
-            return False
+            # fallback to legacy HTTPAPI method
+            testCommand = {'command': 'Help'}
+            request = self._send_to_xbmc(testCommand, host, username, password)
+            if request:
+                # return a fake version number, so it uses the legacy method
+                return 1
+            else:
+                return False
 
     def _notify_xbmc(self, message, title="Sick Beard", host=None, username=None, password=None, force=False):
         """Internal wrapper for the notify_snatch and notify_download functions
@@ -118,7 +129,7 @@ class XBMCNotifier:
         for curHost in [x.strip() for x in host.split(",")]:
             logger.log(u"Sending XBMC notification to '" + curHost + "' - " + message, logger.MESSAGE)
 
-            xbmcapi = self._get_json_version(curHost, username, password)
+            xbmcapi = self._get_xbmc_version(curHost, username, password)
             if xbmcapi:
                 if (xbmcapi <= 4):
                     logger.log(u"Detected XBMC version <= 11, using XBMC HTTP API", logger.DEBUG)
@@ -128,14 +139,53 @@ class XBMCNotifier:
                         result += curHost + ':' + str(notifyResult)
                 else:
                     logger.log(u"Detected XBMC version >= 12, using XBMC JSON API", logger.DEBUG)
-                    command = '{"jsonrpc":"2.0","method":"GUI.ShowNotification","params":{"title":"%s","message":"%s"},"id":1}' % (title.encode("utf-8"), message.encode("utf-8"))
+                    command = '{"jsonrpc":"2.0","method":"GUI.ShowNotification","params":{"title":"%s","message":"%s", "image": "%s"},"id":1}' % (title.encode("utf-8"), message.encode("utf-8"), self.sb_logo_url)
                     notifyResult = self._send_to_xbmc_json(command, curHost, username, password)
                     if notifyResult:
                         result += curHost + ':' + notifyResult["result"].decode(sickbeard.SYS_ENCODING)
             else:
-                logger.log(u"Failed to detect XBMC version for '" + curHost + "', check configuration and try again.", logger.DEBUG)
+                logger.log(u"Failed to detect XBMC version for '" + curHost + "', check configuration and try again.", logger.ERROR)
+                result += curHost + ':False'
 
         return result
+
+    def _send_update_library(self, host, showName=None):
+        """Internal wrapper for the update library function to branch the logic for JSON-RPC or legacy HTTP API
+
+        Checks the XBMC API version to branch the logic to call either the legacy HTTP API or the newer JSON-RPC over HTTP methods.
+
+        Args:
+            host: XBMC webserver host:port
+            showName: Name of a TV show to specifically target the library update for
+
+        Returns:
+            Returns True or False, if the update was successful
+
+        """
+
+        logger.log(u"Sending request to update library for XBMC host: '" + host + "'", logger.MESSAGE)
+
+        xbmcapi = self._get_xbmc_version(host, sickbeard.XBMC_USERNAME, sickbeard.XBMC_PASSWORD)
+        if xbmcapi:
+            if (xbmcapi <= 4):
+                # try to update for just the show, if it fails, do full update if enabled
+                if not self._update_library(host, showName) and sickbeard.XBMC_UPDATE_FULL:
+                    logger.log(u"Single show update failed, falling back to full update", logger.WARNING)
+                    return self._update_library(host)
+                else:
+                    return True
+            else:
+                # try to update for just the show, if it fails, do full update if enabled
+                if not self._update_library_json(host, showName) and sickbeard.XBMC_UPDATE_FULL:
+                    logger.log(u"Single show update failed, falling back to full update", logger.WARNING)
+                    return self._update_library_json(host)
+                else:
+                    return True
+        else:
+            logger.log(u"Failed to detect XBMC version for '" + host + "', check configuration and try again.", logger.DEBUG)
+            return False
+
+        return False
 
 ##############################################################################
 # Legacy HTTP API (pre XBMC 12) methods
@@ -257,7 +307,7 @@ class XBMCNotifier:
                 return False
 
             for path in paths:
-                # Don't need it double-encoded, gawd this is dumb
+                # we do not need it double-encoded, gawd this is dumb
                 unEncPath = urllib.unquote(path.text).decode(sickbeard.SYS_ENCODING)
                 logger.log(u"XBMC Updating " + showName + " on " + host + " at " + unEncPath, logger.DEBUG)
                 updateCommand = {'command': 'ExecBuiltIn', 'parameter': 'XBMC.updatelibrary(video, %s)' % (unEncPath)}
@@ -402,7 +452,7 @@ class XBMCNotifier:
                 return False
 
             logger.log(u"XBMC Updating " + showName + " on " + host + " at " + path, logger.DEBUG)
-            updateCommand = '{"jsonrpc":"2.0","method":"VideoLibrary.Scan","params":{"directory":%s},"id":1}' % (json.dumps(path))
+            updateCommand = '{"jsonrpc":"2.0","method":"VideoLibrary.Scan","params":{"directory":%s},"id":1}' % (json.dumps("\"" + path + "\"")) # yes we really have to wrap the path in escaped "
             request = self._send_to_xbmc_json(updateCommand, host)
             if not request:
                 logger.log(u"Update of show directory failed on " + showName + " on " + host + " at " + path, logger.ERROR)
@@ -449,7 +499,7 @@ class XBMCNotifier:
         """Public wrapper for the update library functions to branch the logic for JSON-RPC or legacy HTTP API
 
         Checks the XBMC API version to branch the logic to call either the legacy HTTP API or the newer JSON-RPC over HTTP methods.
-        Do the ability of accepting a list of hosts deliminated by comma, we split off the first host to send the update to.
+        Do the ability of accepting a list of hosts deliminated by comma, only one host is updated, the first to respond with success.
         This is a workaround for SQL backend users as updating multiple clients causes duplicate entries.
         Future plan is to revist how we store the host/ip/username/pw/options so that it may be more flexible.
 
@@ -466,32 +516,22 @@ class XBMCNotifier:
                 logger.log(u"No XBMC hosts specified, check your settings", logger.DEBUG)
                 return False
 
-            # only send update to first host in the list -- workaround for xbmc sql backend users
-            host = sickbeard.XBMC_HOST.split(",")[0].strip()
-
-            logger.log(u"Sending request to update library for XBMC host: '" + host + "'", logger.MESSAGE)
-
-            xbmcapi = self._get_json_version(host, sickbeard.XBMC_USERNAME, sickbeard.XBMC_PASSWORD)
-            if xbmcapi:
-                if (xbmcapi <= 4):
-                    # try to update for just the show, if it fails, do full update if enabled
-                    if not self._update_library(host, showName) and sickbeard.XBMC_UPDATE_FULL:
-                        logger.log(u"Single show update failed, falling back to full update", logger.WARNING)
-                        return self._update_library(host)
-                    else:
+            # either update each host, or only attempt to update until one successful result
+            result = 0
+            for host in [x.strip() for x in sickbeard.XBMC_HOST.split(",")]:
+                if self._send_update_library(host, showName):
+                    if sickbeard.XBMC_UPDATE_ONLYFIRST:
+                        logger.log(u"Successfully updated '" + host + "', stopped sending update library commands.", logger.DEBUG)
                         return True
                 else:
-                    # try to update for just the show, if it fails, do full update if enabled
-                    if not self._update_library_json(host, showName) and sickbeard.XBMC_UPDATE_FULL:
-                        logger.log(u"Single show update failed, falling back to full update", logger.WARNING)
-                        return self._update_library_json(host)
-                    else:
-                        return True
+                    logger.log(u"Failed to detect XBMC version for '" + host + "', check configuration and try again.", logger.ERROR)
+                    result = result + 1
+
+            # needed for the 'update xbmc' submenu command
+            # as it only cares of the final result vs the individual ones
+            if result == 0:
+                return True
             else:
-                logger.log(u"Failed to detect XBMC version for '" + host + "', check configuration and try again.", logger.DEBUG)
                 return False
-
-            return True
-
 
 notifier = XBMCNotifier

@@ -61,7 +61,7 @@ class NewznabProvider(generic.NZBProvider):
         return self.name + '|' + self.url + '|' + self.key + '|' + str(int(self.enabled))
 
     def imageName(self):
-        if ek.ek(os.path.isfile, ek.ek(os.path.join, sickbeard.PROG_DIR, 'data', 'images', 'providers', self.getID() + '.png')):
+        if ek.ek(os.path.isfile, ek.ek(os.path.join, sickbeard.PROG_DIR, 'gui', 'slick', 'images', 'providers', self.getID() + '.png')):
             return self.getID() + '.png'
         return 'newznab.png'
 
@@ -283,7 +283,6 @@ class NewznabCache(tvcache.TVCache):
     def _getRSSData(self):
 
         params = {"t": "tvsearch",
-                  "age": sickbeard.USENET_RETENTION,
                   "cat": '5040,5030'}
 
         # hack this in for now

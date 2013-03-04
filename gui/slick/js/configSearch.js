@@ -47,17 +47,18 @@ $(document).ready(function(){
             $('#Torrent_username').show()
             $('#Torrent_Path').hide();
             $('#Torrent_Ratio').hide();
-            $('#Torrent_Paused').hide();
+            $('#Torrent_Label').show()
             $('#host_desc').text('uTorrent Host');
             $('#username_desc').text('uTorrent Username');
             $('#password_desc').text('uTorrent Password');
+            $('#label_desc').text('uTorrent Label');
         } else if (selectedProvider == "transmission"){
             $('#t_blackhole_settings').hide();
             $('#torrent_settings').show();
-            $('#Torrent_username').show()
+            $('#Torrent_username').show();
             $('#Torrent_Path').show();
             $('#Torrent_Ratio').show();
-            $('#Torrent_Paused').show();
+            $('#Torrent_Label').hide();
             $('#host_desc').html('Transmission Host');
             $('#username_desc').text('Transmission Username');
             $('#password_desc').text('Transmission Password');
@@ -65,13 +66,15 @@ $(document).ready(function(){
         } else if (selectedProvider == "deluge"){
             $('#t_blackhole_settings').hide();
             $('#torrent_settings').show();
+            $('#Torrent_Label').show();            
             $('#Torrent_username').hide();
-            $('#Torrent_Path').hide();
-            $('#Torrent_Ratio').hide();
-            $('#Torrent_Paused').hide();
+            $('#Torrent_Path').show();
+            $('#Torrent_Ratio').show();
             $('#host_desc').text('Deluge Host');
             $('#username_desc').text('Deluge Username');
             $('#password_desc').text('Deluge Password');
+            $('#label_desc').text('Deluge Label');
+            $('#directory_desc').text('Deluge Directory');
         }
     }
 
@@ -81,10 +84,10 @@ $(document).ready(function(){
 
     $('#testSABnzbd').click(function(){
         $('#testSABnzbd-result').html(loading);
-        var sab_host = $("input=[name='sab_host']").val();
-        var sab_username = $("input=[name='sab_username']").val();
-        var sab_password = $("input=[name='sab_password']").val();
-        var sab_apiKey = $("input=[name='sab_apikey']").val();
+        var sab_host = $('#sab_host').val();
+        var sab_username = $('#sab_username').val();
+        var sab_password = $('#sab_password').val();
+        var sab_apiKey = $('#sab_apikey').val();
         
         $.get(sbRoot+"/home/testSABnzbd", {'host': sab_host, 'username': sab_username, 'password': sab_password, 'apikey': sab_apiKey}, 
         function (data){ $('#testSABnzbd-result').html(data); });
@@ -102,9 +105,9 @@ $(document).ready(function(){
     $('#testTorrent').click(function(){
         $('#testTorrent-result').html(loading);
         var torrent_method = $('#torrent_method :selected').val();        
-        var torrent_host = $("input=[name='torrent_host']").val();
-        var torrent_username = $("input=[name='torrent_username']").val();
-        var torrent_password = $("input=[name='torrent_password']").val();
+        var torrent_host = $('#torrent_host').val();
+        var torrent_username = $('#torrent_username').val();
+        var torrent_password = $('#torrent_password').val();
         
         $.get(sbRoot+"/home/testTorrent", {'torrent_method': torrent_method, 'host': torrent_host, 'username': torrent_username, 'password': torrent_password}, 
         function (data){ $('#testTorrent-result').html(data); });

@@ -43,15 +43,22 @@
 <div class="showInfo">
 <h1 class="title"><a>$show.name</a></h1>
 <span class="headerInfo" style="color: #b7b7b7; line-height: 16px;">
-#if $show.imdb_info == {}
-	($show.startyear) - $show.runtime min - $show.genre[1:-1].replace('|',' | ')
+#if not $show.imdbid
+	($show.startyear) - $show.runtime min 
+	#if $show.genre: 
+		- $show.genre[1:-1].replace('|',' | ') 
+	#end if
+	<span class="tvshowLink" style="vertical-align: text-top">
+		<a href="http://www.thetvdb.com/?tab=series&amp;id=$show.tvdbid" onclick="window.open(this.href, '_blank'); return false;" title="http://www.thetvdb.com/?tab=series&amp;id=$show.tvdbid"><img alt="[tvdb]" height="16" width="16" src="$sbRoot/images/thetvdb16.png" style="margin-top: -1px;"/></a>
+	</span>
 #else
 	<img src="$sbRoot/images/flags/${$show.imdb_info['country_codes']}.png" width="16" height="11" style="margin-top: 3px; margin-left: 3px" /> ($show.imdb_info['year']) - $show.imdb_info['runtimes'] min - $show.imdb_info['genres'].replace('|',' | ')
-#end if
 	<span class="tvshowLink" style="vertical-align: text-top">
 		<a href="http://www.imdb.com/title/$show.imdbid" onclick="window.open(this.href, '_blank'); return false;" title="http://www.imdb.com/title/$show.imdbid"><img alt="[imdb]" height="16" width="16" src="$sbRoot/images/imdb.png" style="margin-top: -1px;"/>
 		<a href="http://www.thetvdb.com/?tab=series&amp;id=$show.tvdbid" onclick="window.open(this.href, '_blank'); return false;" title="http://www.thetvdb.com/?tab=series&amp;id=$show.tvdbid"><img alt="[tvdb]" height="16" width="16" src="$sbRoot/images/thetvdb16.png" style="margin-top: -1px;"/></a>
 	</span>
+
+#end if
 </span> 
 
 ##There is a special/season_0?## 
@@ -124,10 +131,10 @@
 <span class="quality $qualityPresetStrings[$show.quality]">$qualityPresetStrings[$show.quality]</span>
 #else:
 #if $anyQualities:
-<i>Initial:</i> <b><%=", ".join([Quality.qualityStrings[x] for x in anyQualities])%></b> #if $bestQualities then " </br> " else ""#
+<i>Initial:</i> <b><%=", ".join([Quality.qualityStrings[x] for x in sorted(anyQualities)])%></b> #if $bestQualities then " </br> " else ""#
 #end if
 #if $bestQualities:
-<i>Replace with:</i> <b><%=", ".join([Quality.qualityStrings[x] for x in bestQualities])%></b>
+<i>Replace with:</i> <b><%=", ".join([Quality.qualityStrings[x] for x in sorted(bestQualities)])%></b>
 #end if
 #end if
 
@@ -153,14 +160,13 @@
 
 #set $curSeason = -1
 #set $odd = 0
-$Quality.DOWNLOADED.sort()
 
 <div style="clear:both;" class="clearfix"></div>
 
 <div class="float-left">
 	Change selected episodes to 
 	<select id="statusSelect">
-		#for $curStatus in [$WANTED, $SKIPPED, $ARCHIVED, $IGNORED] + $Quality.DOWNLOADED:
+		#for $curStatus in [$WANTED, $SKIPPED, $ARCHIVED, $IGNORED] + sorted($Quality.DOWNLOADED):
 		#if $curStatus == $DOWNLOADED:
 		#continue
 		#end if
@@ -243,7 +249,7 @@ $epLoc
 #end if
 #set $curStatus, $curQuality = $Quality.splitCompositeStatus(int($epResult["status"]))
 #if $curQuality != Quality.NONE:   
-    <td class="status_column">$statusStrings[$curStatus] <span class="quality $Quality.qualityStrings[$curQuality]">$Quality.qualityStrings[$curQuality]</span></td>
+    <td class="status_column">$statusStrings[$curStatus] <span class="quality $Quality.qualityStrings[$curQuality].replace("720p","HD720p").replace("1080p","HD1080p").replace("RawHD TV", "RawHD").replace("HD TV", "HD720p")">$Quality.qualityStrings[$curQuality]</span></td>
 #else:    
     <td class="status_column">$statusStrings[$curStatus]</td>
 #end if

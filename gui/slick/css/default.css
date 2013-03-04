@@ -64,14 +64,18 @@ img {
 }
 
 .imgHomeWrapper {
-	background: url("../images/loading.gif") no-repeat scroll center center #FFFFFF;
+    background: url("../images/loading.gif") no-repeat scroll center center #FFFFFF;
     border: 3px solid #FFFFFF;
     box-shadow: 1px 1px 2px 0 #555555;
     float: left;
-    height: 50px;
+    height: 52px;
     overflow: hidden;
+}
+
+.imgHomeWrapperRounded{
     border-radius: 8px;
 }
+
 .imgHomeWrapper .poster {
     float: left;
     width: 50px;
@@ -79,10 +83,15 @@ img {
     position: relative;
     vertical-align: middle;
 }
+
 .imgHomeWrapper .banner {
+    height: 52px;
+    overflow: hidden;
+    border-radius: 8px;
     vertical-align: top;
     height: auto;
     width: 300px;
+    border-radius: 8px;
 }
 
 html {
@@ -455,7 +464,7 @@ width: 30%;
   font-weight: bold;
   line-height: 20px;
   text-align: center;
-  width: 12%;
+  width: 13%;
 	color: #555555;
 }
 
@@ -661,7 +670,7 @@ div#summary {
   margin: 3px 0 10px 0;
 }
 div#summary .infoTable {
-  width: 85%;
+  width: 90%;
 }
 div#summary tr {
   line-height: 17px;
@@ -678,7 +687,7 @@ div#summary tr td {
 }
 #SubMenu {
   float: right;
-  margin-top: -30px;
+  margin-top: -35px;
   position: relative;
   z-index: 99;
 }
@@ -985,34 +994,43 @@ span.quality {
   border-radius: 4px;
 }
 span.Custom {
-  background: none repeat scroll 0 0 #444499;
-  /* blue */
-
+  background: none repeat scroll 0 0 #449;
+  /* purplish blue */
 }
 
-span.HD,
-span.WEB-DL,
-span.BluRay {
-  background: none repeat scroll 0 0 #449944;
-  /* green */
+span.HD {
+  background: none repeat scroll 0 0 #008fbb;
+  /* greenish blue */
+}
 
+span.HD720p {
+  background: none repeat scroll 0 0 #494;
+  /* green */
+}
+
+span.HD1080p {
+  background: none repeat scroll 0 0 #499;
+  /* blue */
+}
+
+span.RawHD {
+  background: none repeat scroll 0 0 #999944;
+  /* dark orange */
 }
 
 span.SD {
-  background: none repeat scroll 0 0 #994444;
+  background: none repeat scroll 0 0 #944;
   /* red */
-
 }
-span.Any {
-  background: none repeat scroll 0 0 #444444;
-  /* black */
 
+span.Any {
+  background: none repeat scroll 0 0 #444;
+  /* black */
 }
 
 span.Proper {
   background: none repeat scroll 0 0 #CD7300;
-  /* red */
-
+  /* orange_red */
 }
 
 span.false {
@@ -1028,6 +1046,11 @@ span.true {
 .ui-progressbar {
   height: 18px !important;
   line-height: 17px;
+}
+
+.pull-left {
+    float: left;
+    padding-right: 2px
 }
 
 .pull-right {
@@ -1636,21 +1659,20 @@ input[type="submit"].btn.btn-mini {
 
 #customQuality {
     clear: both;
-    display: block;
-
+    display: block ;
+    overflow-x: hidden; 
+    overflow-y: hidden;
     padding-bottom: 10px;
     padding-left: 0;
     padding-right: 0;
     padding-top: 10px;
-    height:190px !important;*/
-    font-size: 0.9em;
+    font-size: 14px;
     padding-left:20px;
 }
 
 .stepDiv > #customQualityWrapper {
-    height: 193px !important;
-    overflow-x: auto;
-    overflow-y: auto;
+    overflow-x: hidden;
+    overflow-y: hidden;
 }
 
 #customQualityWrapper div.component-group-desc {

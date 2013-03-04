@@ -35,7 +35,7 @@ from lib import subliminal
 
 from lib.tvdb_api import tvdb_api, tvdb_exceptions
 
-from lib.imdb_api import imdb
+from lib.imdb import imdb
 
 from sickbeard import db
 from sickbeard import helpers, exceptions, logger
@@ -45,6 +45,7 @@ from sickbeard import image_cache
 from sickbeard import notifiers
 from sickbeard import postProcessor
 from sickbeard import subtitles
+from sickbeard import history
 
 from sickbeard import encodingKludge as ek
 
@@ -620,8 +621,10 @@ class TVShow(object):
                 self.air_by_date = 0
             
             self.subtitles = sqlResults[0]["subtitles"]
-            if self.subtitles == None:
-                self.subtitles = 0
+            if self.subtitles:
+                self.subtitles = 1
+            else:
+                self.subtitles = 0    
 
             self.quality = int(sqlResults[0]["quality"])
             self.flatten_folders = int(sqlResults[0]["flatten_folders"])
@@ -709,55 +712,57 @@ class TVShow(object):
                      'last_update': ''
                      }
         
-        logger.log(str(self.tvdbid) + ": Loading show info from IMDb")
-
-        i = imdb.IMDb()
-        imdbTv = i.get_movie(str(self.imdbid[2:]))
+        if self.imdbid:
         
-        for key in filter(lambda x: x in imdbTv.keys(), imdb_info.keys()):
-            # Store only the first value for string type
-            if type(imdb_info[key]) == type('') and type(imdbTv.get(key)) == type([]):
-                imdb_info[key] = imdbTv.get(key)[0]
-            else:
-                imdb_info[key] = imdbTv.get(key)
-        
-        #Filter only the value
-        if imdb_info['runtimes']:   
-            imdb_info['runtimes'] = re.search('\d+',imdb_info['runtimes']).group(0)   
-        else:
-            imdb_info['runtimes'] = self.runtime    
-
-        if imdb_info['akas']:
-            imdb_info['akas'] = '|'.join(imdb_info['akas'])
-        else:
-            imdb_info['akas'] = ''    
-        
-        #Join all genres in a string
-        if imdb_info['genres']:
-            imdb_info['genres'] = '|'.join(imdb_info['genres'])
-        else:
-            imdb_info['genres'] = ''    
+            logger.log(str(self.tvdbid) + ": Loading show info from IMDb")
+    
+            i = imdb.IMDb()
+            imdbTv = i.get_movie(str(self.imdbid[2:]))
             
-        #Get only the production country certificate if any 
-        if imdb_info['certificates'] and imdb_info['countries']:
-            dct = {}
-            for item in imdb_info['certificates']:
-                dct[item.split(':')[0]] = item.split(':')[1]
-
-            try:
-                imdb_info['certificates'] = dct[imdb_info['countries']]
-            except KeyError:
-                imdb_info['certificates'] = ''    
-
-        else:
-            imdb_info['certificates'] = ''       
+            for key in filter(lambda x: x in imdbTv.keys(), imdb_info.keys()):
+                # Store only the first value for string type
+                if type(imdb_info[key]) == type('') and type(imdbTv.get(key)) == type([]):
+                    imdb_info[key] = imdbTv.get(key)[0]
+                else:
+                    imdb_info[key] = imdbTv.get(key)
+            
+            #Filter only the value
+            if imdb_info['runtimes']:   
+                imdb_info['runtimes'] = re.search('\d+',imdb_info['runtimes']).group(0)   
+            else:
+                imdb_info['runtimes'] = self.runtime    
+    
+            if imdb_info['akas']:
+                imdb_info['akas'] = '|'.join(imdb_info['akas'])
+            else:
+                imdb_info['akas'] = ''    
+            
+            #Join all genres in a string
+            if imdb_info['genres']:
+                imdb_info['genres'] = '|'.join(imdb_info['genres'])
+            else:
+                imdb_info['genres'] = ''    
+                
+            #Get only the production country certificate if any 
+            if imdb_info['certificates'] and imdb_info['countries']:
+                dct = {}
+                try:
+                    for item in imdb_info['certificates']:
+                        dct[item.split(':')[0]] = item.split(':')[1]
         
-        imdb_info['last_update'] = datetime.date.today().toordinal()
-        
-        #Rename dict keys without spaces for DB upsert
-        self.imdb_info = dict((k.replace(' ', '_'),f(v) if hasattr(v,'keys') else v) for k,v in imdb_info.items())
-
-        logger.log(str(self.tvdbid) + ": Obtained info from IMDb ->" +  str(self.imdb_info), logger.DEBUG)
+                    imdb_info['certificates'] = dct[imdb_info['countries']]
+                except:
+                    imdb_info['certificates'] = ''    
+    
+            else:
+                imdb_info['certificates'] = ''       
+            
+            imdb_info['last_update'] = datetime.date.today().toordinal()
+            
+            #Rename dict keys without spaces for DB upsert
+            self.imdb_info = dict((k.replace(' ', '_'),f(v) if hasattr(v,'keys') else v) for k,v in imdb_info.items())
+    
+            logger.log(str(self.tvdbid) + ": Obtained info from IMDb ->" +  str(self.imdb_info), logger.DEBUG)
         
     def loadNFO (self):
 
@@ -923,12 +928,20 @@ class TVShow(object):
                 if sickbeard.SUBTITLES_DIR:
                     for video in subtitles:
                         subs_new_path = ek.ek(os.path.join, os.path.dirname(video.path), sickbeard.SUBTITLES_DIR)
-                        if not ek.ek(os.path.isdir, subs_new_path):
-                            ek.ek(os.mkdir, subs_new_path)
+                        dir_exists = helpers.makeDir(subs_new_path)
+                        if not dir_exists:
+                            logger.log(u"Unable to create subtitles folder "+subs_new_path, logger.ERROR)
+                        else:
+                            helpers.chmodAsParent(subs_new_path)
                         
                         for subtitle in subtitles.get(video):
                             new_file_path = ek.ek(os.path.join, subs_new_path, os.path.basename(subtitle.path))
                             helpers.moveFile(subtitle.path, new_file_path)
+                            helpers.chmodAsParent(new_file_path)
+                else:
+                    for video in subtitles:
+                        for subtitle in subtitles.get(video):
+                            helpers.chmodAsParent(subtitle.path)
                 
         except Exception as e:
             logger.log("Error occurred when downloading subtitles: " + str(e), logger.DEBUG)
@@ -953,7 +966,7 @@ class TVShow(object):
                         "flatten_folders": self.flatten_folders,
                         "paused": self.paused,
                         "air_by_date": self.air_by_date,
-						"subtitles": self.subtitles,
+                        "subtitles": self.subtitles,
                         "startyear": self.startyear,
                         "tvr_name": self.tvrname,
                         "lang": self.lang,
@@ -962,7 +975,7 @@ class TVShow(object):
 
         myDB.upsert("tv_shows", newValueDict, controlValueDict)
         
-        if not self.imdb_info == {}:
+        if self.imdbid:
             controlValueDict = {"tvdb_id": self.tvdbid}
             newValueDict = self.imdb_info
             
@@ -1055,9 +1068,11 @@ class TVShow(object):
                 maxBestQuality = None
 
             epStatus, curQuality = Quality.splitCompositeStatus(epStatus)
-
+    
+            if epStatus in (SNATCHED, SNATCHED_PROPER):
+                return Overview.SNATCHED
             # if they don't want re-downloads then we call it good if they have anything
-            if maxBestQuality == None:
+            elif maxBestQuality == None:
                 return Overview.GOOD
             # if they have one but it's not the best they want then mark it as qual
             elif curQuality < maxBestQuality:
@@ -1065,7 +1080,7 @@ class TVShow(object):
             # if it's >= maxBestQuality then it's good
             else:
                 return Overview.GOOD
-
+            
 def dirty_setter(attr_name):
     def wrapper(self, val):
         if getattr(self, attr_name) != val:
@@ -1091,6 +1106,7 @@ class TVEpisode(object):
         self._tvdbid = 0
         self._file_size = 0
         self._release_name = ''
+        self._is_proper = False
 
         # setting any of the above sets the dirty flag
         self.dirty = True
@@ -1121,6 +1137,7 @@ class TVEpisode(object):
     #location = property(lambda self: self._location, dirty_setter("_location"))
     file_size = property(lambda self: self._file_size, dirty_setter("_file_size"))
     release_name = property(lambda self: self._release_name, dirty_setter("_release_name"))
+    is_proper = property(lambda self: self._is_proper, dirty_setter("_is_proper"))
 
     def _set_location(self, new_location):
         logger.log(u"Setter sets location to " + new_location, logger.DEBUG)
@@ -1145,29 +1162,37 @@ class TVEpisode(object):
             return
         logger.log(str(self.show.tvdbid) + ": Downloading subtitles for episode " + str(self.season) + "x" + str(self.episode), logger.DEBUG)
         
+        previous_subtitles = self.subtitles
+
         try:
-            subtitles = subliminal.download_subtitles([self.location], languages=sickbeard.SUBTITLES_LANGUAGES, services=sickbeard.subtitles.getEnabledServiceList(), force=False, multi=True, cache_dir=sickbeard.CACHE_DIR)
+            need_languages = set(sickbeard.SUBTITLES_LANGUAGES) - set(self.subtitles)
+            subtitles = subliminal.download_subtitles([self.location], languages=need_languages, services=sickbeard.subtitles.getEnabledServiceList(), force=False, multi=True, cache_dir=sickbeard.CACHE_DIR)
             
         except Exception as e:
             logger.log("Error occurred when downloading subtitles: " + str(e), logger.DEBUG)
             return
-        
-        if subtitles:
-            subtitleList = []
-            for video in subtitles:
-                for subtitle in subtitles.get(video):
-                    subtitleList.append(subtitle.language.name)
-            
-            logger.log(str(self.show.tvdbid) + ": Downloaded " + ", ".join(subtitleList) + " subtitles for episode " + str(self.season) + "x" + str(self.episode), logger.DEBUG)
-            
-            notifiers.notify_subtitle_download(self.prettyName(), ", ".join(subtitleList))
-        else:
-            logger.log(str(self.show.tvdbid) + ": No subtitles downloaded for episode " + str(self.season) + "x" + str(self.episode), logger.DEBUG)
-        
+
         self.refreshSubtitles()
         self.subtitles_searchcount = self.subtitles_searchcount + 1
         self.subtitles_lastsearch = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.saveToDB()
+        
+        newsubtitles = set(self.subtitles).difference(set(previous_subtitles))
+        
+        if newsubtitles:
+            subtitleList = (subliminal.language.Language(x).name for x in newsubtitles)
+            logger.log(str(self.show.tvdbid) + ": Downloaded " + ", ".join(subtitleList) + " subtitles for episode " + str(self.season) + "x" + str(self.episode), logger.DEBUG)
+            
+            notifiers.notify_subtitle_download(self.prettyName(), ", ".join(subtitleList))
+
+        else:
+            logger.log(str(self.show.tvdbid) + ": No subtitles downloaded for episode " + str(self.season) + "x" + str(self.episode), logger.DEBUG)
+
+        if sickbeard.SUBTITLES_HISTORY:
+            for video in subtitles:
+                for subtitle in subtitles.get(video):
+                    history.logSubtitle(self.show.tvdbid, self.season, self.episode, self.status, subtitle)
+
         
         return subtitles
 
@@ -1270,6 +1295,9 @@ class TVEpisode(object):
             
             if sqlResults[0]["release_name"] != None:
                 self.release_name = sqlResults[0]["release_name"]
+
+            if sqlResults[0]["is_proper"]:
+                self.is_proper = int(sqlResults[0]["is_proper"])
 
             self.dirty = False
             return True
@@ -1558,7 +1586,8 @@ class TVEpisode(object):
                         "status": self.status,
                         "location": self.location,
                         "file_size": self.file_size,
-                        "release_name": self.release_name}
+                        "release_name": self.release_name,
+                        "is_proper": self.is_proper}
         controlValueDict = {"showid": self.show.tvdbid,
                             "season": self.season,
                             "episode": self.episode}
@@ -1663,7 +1692,7 @@ class TVEpisode(object):
         epStatus, epQual = Quality.splitCompositeStatus(self.status) #@UnusedVariable
 
         if sickbeard.NAMING_STRIP_YEAR:
-            show_name = re.sub("\(\w+\)$", "", self.show.name).rstrip()
+            show_name = re.sub("\(\d+\)$", "", self.show.name).rstrip()
         else:
             show_name = self.show.name 
         
@@ -1692,6 +1721,7 @@ class TVEpisode(object):
                    '%D': str(self.airdate.day),
                    '%0M': '%02d' % self.airdate.month,
                    '%0D': '%02d' % self.airdate.day,
+                   '%RT': "PROPER" if self.is_proper else "",
                    }
 
     def _format_string(self, pattern, replace_map):
@@ -1894,8 +1924,9 @@ class TVEpisode(object):
         proper_path = self.proper_path()
         absolute_proper_path = ek.ek(os.path.join, self.show.location, proper_path)
         absolute_current_path_no_ext, file_ext = os.path.splitext(self.location)
-        related_subs = []
         
+        related_subs = []
+
         current_path = absolute_current_path_no_ext
 
         if absolute_current_path_no_ext.startswith(self.show.location):

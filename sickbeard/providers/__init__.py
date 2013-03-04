@@ -18,14 +18,15 @@
 
 __all__ = ['ezrss',
            'tvtorrents',
-           'nzbmatrix',
-           'nzbs_org_old',
            'nzbsrus',
            'womble',
-           'newzbin',
            'btn',
            'thepiratebay',
-           'dtt',           
+           'dtt',
+           'torrentleech',
+           'nzbx',
+           'iptorrents',
+           'omgwtfnzbs'
            ]
 
 import sickbeard
@@ -99,8 +100,7 @@ def makeNewznabProvider(configString):
     return newProvider
 
 def getDefaultNewznabProviders():
-    return 'Sick Beard Index|http://lolo.sickbeard.com/|0|0!!!NZBs.org|http://beta.nzbs.org/||0'
-
+    return 'Sick Beard Index|http://lolo.sickbeard.com/|0|0!!!NZBs.org|http://nzbs.org/||0!!!NZBGeek|https://index.nzbgeek.info/||0!!!NZBFinder|http://www.nzbfinder.ws/||0!!!Usenet-Crawler|http://www.usenet-crawler.com/||0'
 
 def getProviderModule(name):
     name = name.lower()
