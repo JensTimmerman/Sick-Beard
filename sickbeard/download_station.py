@@ -99,7 +99,7 @@ def getsid(host, username, password):
 def sendTORRENT(result):
     """Send a torrent url to the downloadstation api"""
 
-    host = sickbeard.TORRENT_HOST + 'json'
+    host = sickbeard.TORRENT_HOST + 'webapi/task.cgi'
     password = sickbeard.TORRENT_PASSWORD
     username = sickbeard.TORRENT_USERNAME
 
@@ -118,9 +118,6 @@ def sendTORRENT(result):
                             "uri": result.url,
                             "session": "DownloadStation",
                             })
-
-    request = urllib2.Request(
-        url="%s/task.cgi" % host, data=post_data.encode('utf-8'))
 
     logger.log(u"Sending Torrent to Download station Client", logger.DEBUG)
 
