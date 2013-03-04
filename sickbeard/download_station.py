@@ -112,7 +112,7 @@ def sendTORRENT(result):
 
     # SYNO.DownloadStation.Task&version=1&method=create&uri=ftps://192.0.0.1:2
     # 1/test/test.zip
-    post_data = urllib.urlencode({'api': 'SYNO.DownloadStation.task',
+    post_data = urllib.urlencode({'api': 'SYNO.DownloadStation.Task',
                             'version': '1',
                             "method": "create",
                             "_sid": sid,
