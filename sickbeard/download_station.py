@@ -120,10 +120,10 @@ def sendTORRENT(result):
                             "session": "DownloadStation",
                             })
 
-    logger.log(u"Sending Torrent to Download station Client", logger.DEBUG)
+    logger.log(u"Sending Torrent to Download station Client: %s" % str(post_data), logger.DEBUG)
 
     try:
-        request = urllib2.Request(host + 'webapi/task.cgi', post_data.encode('utf-8'),  {'Content-Type': 'appl    ication/json'})
+        request = urllib2.Request(host + 'webapi/DownloadStation/task.cgi', post_data.encode('utf-8'),  {'Content-Type': 'appl    ication/json'})
         response = urllib2.urlopen(request)
         data = json.loads(response.read())
         if data["success"]:
