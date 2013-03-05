@@ -70,7 +70,7 @@ def getsid(host, username, password):
                             })
 
     request = urllib2.Request(
-        "%s/auth.cgi" % host, post_data.encode('utf-8'),  {'Content-Type': 'appl    ication/json'})
+        "%s/auth.cgi" % host, post_data.encode('utf-8'),  {'Content-Type': 'application/json'})
 
     try:
         response = urllib2.urlopen(request)
@@ -123,7 +123,7 @@ def sendTORRENT(result):
     logger.log(u"Sending Torrent to Download station Client: %s" % str(post_data), logger.DEBUG)
 
     try:
-        request = urllib2.Request(host + 'webapi/DownloadStation/task.cgi', post_data.encode('utf-8'),  {'Content-Type': 'appl    ication/json'})
+        request = urllib2.Request(host + 'webapi/DownloadStation/task.cgi', post_data.encode('utf-8'),  {'Content-Type': 'application/json'})
         response = urllib2.urlopen(request)
         data = json.loads(response.read())
         if data["success"]:
